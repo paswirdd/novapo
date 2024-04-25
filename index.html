@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Пошук відділень та поштоматів Нової пошти</title>
+    <style>
+        body {
+            background-image: url('images/zadfon.jpg'); 
+            background-size: cover; 
+            background-position: center; 
+            position: relative;
+        }
+
+        #logo {
+            position: absolute; 
+            top: 10px; 
+            right: 10px; 
+            width: 100px; 
+            height: auto; 
+        }
+    </style>
+</head>
+<body>
+    <img id="logo" src="images/logo.png" alt="Логотип Нової Пошти">
+    <h1>Пошук відділень та поштоматів Нової пошти</h1>
+    <form id="searchForm">
+        <label for="searchInput">Місто, населений пункт або номер відділення:</label>
+        <input type="text" id="searchInput" required>
+        
+        <button type="submit">Пошук</button>
+    </form>
+    
+    <div id="loader" class="loader" style="display:none;"></div>
+    <div id="results"></div>
+
+    <script>
+        document.getElementById('searchForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+
+            var searchTerm = document.getElementById('searchInput').value.trim();
+            var apiKey = 'e05950b6393e8e4b18769a608d544e30'; // Ваш API ключ
+
+            var requestData = {
+                apiKey: apiKey,
+                modelName: 'Address',
+                calledMethod: 'getWarehouses',
+                methodProperties: {
+                    CityName: searchTerm,
+                    Number: searchTerm
+                }
+            };
+
+            var xhr = new XMLHttpRequest();
+            xhr.open('POST', 'https://api.novaposhta.ua/v2.0/json/Address/getWarehouses');
+            xhr.setRequestHeader('Content-Type', 'application/json');
+            xhr.onload = function() {
+                if (xhr.status === 200) {
+                    var data = JSON.parse(xhr.responseText).data;
+                    displayResults(data);
+                } else {
+                    alert('Помилка при отриманні даних. Будь ласка, спробуйте ще раз.');
+                }
+                document.getElementById('loader').style.display = 'none';
+            };
+            xhr.onerror = function() {
+                alert('Виникла помилка при виконанні запиту.');
+                document.getElementById('loader').style.display = 'none';
+            };
+            xhr.send(JSON.stringify(requestData));
+
+            document.getElementById('loader').style.display = 'block';
+        });
+
+        function displayResults(data) {
+            var resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = ''; // Очищаємо попередні результати
+            if (data.length === 0) {
+                var searchTerm = document.getElementById('searchInput').value.trim();
+                if (!isNaN(searchTerm)) { // перевіряємо, чи введено число
+                    requestData.methodProperties.CityName = ''; // змінюємо запит, щоб шукати за номером відділення
+                    xhr.send(JSON.stringify(requestData)); // виконуємо новий запит
+                    return;
+                }
+                resultsDiv.textContent = 'Романа вітає нова пошта відділення немає у цьому місці.';
+            } else {
+                data.forEach(function(item) {
+                    var p = document.createElement('p');
+                    p.textContent = item.Description;
+                    resultsDiv.appendChild(p);
+                });
+            }
+        }
+    </script>
+</body>
+</html>
